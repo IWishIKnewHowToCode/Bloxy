@@ -1,44 +1,39 @@
+using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.IO;
-using Newtonsoft.Json;
+using Discord;
 
 namespace DiscordHaxerBot
 {
-    class Config
+    class Program
     {
-        private const string configFolder = "Resource";
-        private const string configFile = "config.json";
+        DiscordSocketClient _client;
+        CommandHandler _handler;
 
-        public static BotConfig bot;
+        static void Main(string[] args)
+        => new Program().StartAsync().GetAwaiter().GetResult();
 
-
-        static Config()
+        public async Task StartAsync()
         {
-            if (!Directory.Exists(configFolder))
-                Directory.CreateDirectory(configFolder);
-
-            if(!File.Exists(configFolder + "/" + configFile))
+            if (Config.bot.token == "" || Config.bot.token == null) return;
+            _client = new DiscordSocketClient(new DiscordSocketConfig
             {
-                bot = new BotConfig();
-                    string json = JsonConvert.SerializeObject(bot);
-                File.WriteAllText(configFile + "/" + configFile, json);
-            }
-            else
-            {
-                string json = File.ReadAllText(configFolder + "/" + configFile);
-                bot=JsonConvert.DeserializeObject<BotConfig>(json);
-            }
+                LogLevel = LogSeverity.Verbose
+            });
+            _client.Log += Log;
+            await _client.LoginAsync(TokenType.Bot, Config.bot.token);
+            await _client.StartAsync();
+            _handler = new CommandHandler();
+            await _handler.InitializeAsync(_client);
+            await Task.Delay(-1);
         }
 
-        public struct BotConfig
+        private async Task Log(LogMessage msg)
         {
-            public string token;
-            public string cmdPrfix;
+            Console.WriteLine(msg.Message);
         }
-
     }
 }
